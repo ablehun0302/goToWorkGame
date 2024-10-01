@@ -39,13 +39,13 @@ function createBoard() {
 // 게임 보드 출력
 function printBoard(board) {
   console.clear();
-  console.log(`Score: ${score} | Target: ${targetSum} | Current: ${currentSum}`);
+  console.log(`점수: ${score} | 목표 숫자: ${targetSum} | 현재 숫자: ${currentSum}`);
   console.log('┌' + '─'.repeat(WIDTH) + '┐');
   board.forEach(row => {
     console.log('│' + row.join('') + '│');
   });
   console.log('└' + '─'.repeat(WIDTH) + '┘');
-  console.log('Move: ← →  |  Quit: q');
+  console.log('이동: ← →  |  게임 종료: Q');
 }
 
 // 숫자 생성
@@ -91,8 +91,9 @@ function gameLoop() {
     setTimeout(gameLoop, 200);
   } else {
     console.clear();
-    console.log(`Game Over! Your final score: ${score}`);
-    console.log(`You collected ${currentSum}, but the target was ${targetSum}.`);
+    console.log(`게임 종료! 당신의 점수는: ${score}`);
+    console.log(`당신의 목표 숫자는 ${targetSum} 이지만, 당신은 ${currentSum} 만큼 모았습니다.`);
+    console.log('다시 시도한다면 R 키를, 게임을 종료한다면 Q키를 누르세요.');
     process.exit();
   }
 }
@@ -109,7 +110,7 @@ process.stdin.on('keypress', (str, key) => {
 });
 
 // 게임 시작
-console.log('Number Collection Game - Press any key to start');
+console.log('숫자 모으기 게임 - 아무 키를 눌러 게임 시작');
 process.stdin.once('data', () => {
   setNewTarget();
   createNumber();
