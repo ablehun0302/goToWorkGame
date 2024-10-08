@@ -31,24 +31,41 @@ function question(prompt) {
     });
 }
 
-/**게임 창 너비 */  const width = 20;
-/**게임 창 높이*/   const height = 20;
-/**플레이어 X좌표*/ let playerX = Math.floor(width / 2);
-/**플레이어 Y좌표*/ let playerY = height - 1;
-/**자동차 배열*/    let cars = [];
-let gameInterval;
+/**게임 창 너비 */                  const width = 20;
+/**게임 창 높이*/                   const height = 20;
+/**플레이어 X좌표 @type {number}*/  let playerX;
+/**플레이어 Y좌표 @type {number}*/  let playerY;
+/**자동차 배열 @type {Array}*/      let cars;
 
-let startTime = 0;
-let timeTaken = 0;
-/**게임 레벨*/      let level = 1;
-let carSpawnInterval = 1000;
-let carSpeed = 167;
+/**게임 레벨 @type {number}*/           let level;
+/**게임 시작 시간 @type {number}*/      let startTime;
+/**게임 종료 시간 @type {number}*/      let timeTaken;
+/**차 생성 주기(밀도) @type {number}*/  let carSpawnInterval;
+/**게임 속도 @type {number}*/           let gameSpeed;
 
+/**게임 루프 이벤트를 저장하는 필드*/let gameInterval;
+/**차 생성 이벤트를 저장하는 필드*/  let carInterval;
+
+/** 게임 초기값 세팅 함수 */
+function gameSetting() {
+    playerX = Math.floor(width / 2);
+    playerY = height - 1;
+    cars = [];
+}
+
+/** 게임 기록, 난이도 리셋 함수 */
+function gameReset() {
+    level = 1;
+    startTime = 0;
+    timeTaken = 0;
+    carSpawnInterval = 400;
+    gameSpeed = 200;
+}
 
 const levelUp = () => {
     level++;
-    carSpawnInterval *= 0.9;
-    carSpeed *= 0.9;
+    carSpawnInterval *= 0.7;
+    gameSpeed *= 0.9;
     console.log(`레벨 ${level}로 이동합니다!`);
 };
 
@@ -93,6 +110,7 @@ function updateCars() {
             console.log(``);
             console.log(`총 소요 시간: ${timeTaken}초`);
             clearInterval(gameInterval);
+            clearInterval(carInterval);
             setTimeout(() => {
                 main(); // 2초 대기 후 타이틀로 돌아가기
             }, 2000); // 2초 대기
@@ -121,6 +139,7 @@ function gameLoop() {
 
         console.log('🎉 스테이지 클리어! 🎉');
         clearInterval(gameInterval);
+        clearInterval(carInterval);
         levelUp();
         setTimeout(() => {
             playerY = height - 1;
@@ -135,29 +154,10 @@ function gameStart() {
 
     startTime = Date.now(); // 타이머 시작
 
-    gameInterval = setInterval(() => {
-        createCar();
-        gameLoop();
-    }, carSpeed);
+    gameInterval = setInterval(gameLoop, gameSpeed);
 
-    setInterval(createCar, carSpawnInterval);
+    carInterval = setInterval(createCar, carSpawnInterval);
 };
-
-/** 게임 초기값 세팅 함수 */
-function gameSetting() {
-    playerX = Math.floor(width / 2);
-    playerY = height - 1;
-    cars = [];
-}
-
-/** 게임 기록, 난이도 리셋 함수 */
-function gameReset() {
-    level = 1;
-    startTime = 0;
-    timeTaken = 0;
-    carSpawnInterval = 1000;
-    carSpeed = 167;
-}
 
 /** 타이틀 글자 (자동차피하기) 를 출력하는 함수 */
 function titleText() {
