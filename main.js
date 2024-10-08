@@ -72,7 +72,7 @@ const drawStage = () => {
     }
 };
 
-const createCar = () => {
+function createCar() {
     const y = Math.floor(Math.random() * (height - 1)); // y 좌표는 0부터 height-2까지 랜덤
     const x = width - 1;
     
@@ -82,7 +82,7 @@ const createCar = () => {
     }
 };
 
-const updateCars = () => {
+function updateCars() {
     cars.forEach((car, index) => {
         car.x--;
         if (car.x === playerX && car.y === playerY) {
@@ -112,7 +112,7 @@ const movePlayer = (direction) => {
     if (direction === 's' && playerY < height - 1) playerY++;
 };
 
-const gameLoop = () => {
+function gameLoop() {
     drawStage();
     updateCars();
     if (playerY === 0) {
@@ -201,7 +201,6 @@ async function main() {
                    +'자동차를 피해 목적지에 도달하세요!\n\n'
                    +'🚗 잠시 후 게임이 시작됩니다! 🚗'
         );
-        console.log(carSpawnInterval);
         
         //2초 후 게임 시작
         setTimeout(gameStart, 2000);
