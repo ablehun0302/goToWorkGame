@@ -39,14 +39,14 @@ function question(prompt) {
 
 /**게임 레벨 @type {number}*/           let level;
 /**게임 시작 시간 @type {number}*/      let startTime;
-/**게임 종료 시간 @type {number}*/      let timeTaken;
+/**게임 플레이 시간 @type {number}*/    let timeTaken;
 /**차 생성 주기(밀도) @type {number}*/  let carSpawnInterval;
 /**게임 속도 @type {number}*/           let gameSpeed;
 
 /**게임 루프 이벤트를 저장하는 필드*/let gameInterval;
 /**차 생성 이벤트를 저장하는 필드*/  let carInterval;
 
-/** 게임 초기값 세팅 함수 */
+/** 게임 시작 시 게임 세팅 함수 */
 function gameSetting() {
     playerX = Math.floor(width / 2);
     playerY = height - 1;
@@ -62,11 +62,33 @@ function gameReset() {
     gameSpeed = 200;
 }
 
-const levelUp = () => {
-    level++;
-    carSpawnInterval *= 0.7;
-    gameSpeed *= 0.9;
-    console.log(`레벨 ${level}로 이동합니다!`);
+/** 게임 실행 함수 */
+function gameStart() {
+    gameSetting();
+
+    startTime = Date.now(); // 타이머 시작
+
+    gameInterval = setInterval(gameLoop, gameSpeed);
+    carInterval = setInterval(createCar, carSpawnInterval);
+};
+
+/**반복 실행하여 게임을 구현하는 함수 */
+function gameLoop() {
+    drawStage();
+    updateCars();
+    if (playerY === 0) {
+        const endTime = Date.now();
+        timeTaken += Math.floor((endTime - startTime) / 1000);
+
+        console.log('🎉 스테이지 클리어! 🎉');
+        clearInterval(gameInterval);
+        clearInterval(carInterval);
+        levelUp();
+        setTimeout(() => {
+            playerY = height - 1;
+            gameStart();
+        }, 2000); // 2초 대기 후 다음 레벨 시작
+    }
 };
 
 const drawStage = () => {
@@ -86,16 +108,6 @@ const drawStage = () => {
             }
         }
         console.log(line);
-    }
-};
-
-function createCar() {
-    const y = Math.floor(Math.random() * (height - 1)); // y 좌표는 0부터 height-2까지 랜덤
-    const x = width - 1;
-    
-    // 도착점(0)에는 자동차를 생성하지 않도록 조건 추가
-    if (y !== 0) {
-        cars.push({ x, y });
     }
 };
 
@@ -122,41 +134,28 @@ function updateCars() {
     });
 };
 
+const levelUp = () => {
+    level++;
+    carSpawnInterval *= 0.7;
+    gameSpeed *= 0.9;
+    console.log(`레벨 ${level}로 이동합니다!`);
+};
+
+function createCar() {
+    const y = Math.floor(Math.random() * (height - 1)); // y 좌표는 0부터 height-2까지 랜덤
+    const x = width - 1;
+    
+    // 도착점(0)에는 자동차를 생성하지 않도록 조건 추가
+    if (y !== 0) {
+        cars.push({ x, y });
+    }
+};
 
 const movePlayer = (direction) => {
     if (direction === 'a' && playerX > 0) playerX--;
     if (direction === 'd' && playerX < width - 1) playerX++;
     if (direction === 'w' && playerY > 0) playerY--;
     if (direction === 's' && playerY < height - 1) playerY++;
-};
-
-function gameLoop() {
-    drawStage();
-    updateCars();
-    if (playerY === 0) {
-        const endTime = Date.now();
-        timeTaken += Math.floor((endTime - startTime) / 1000);
-
-        console.log('🎉 스테이지 클리어! 🎉');
-        clearInterval(gameInterval);
-        clearInterval(carInterval);
-        levelUp();
-        setTimeout(() => {
-            playerY = height - 1;
-            gameStart();
-        }, 2000); // 2초 대기 후 다음 레벨 시작
-    }
-};
-
-/** 게임 실행 함수 */
-function gameStart() {
-    gameSetting();
-
-    startTime = Date.now(); // 타이머 시작
-
-    gameInterval = setInterval(gameLoop, gameSpeed);
-
-    carInterval = setInterval(createCar, carSpawnInterval);
 };
 
 /** 타이틀 글자 (자동차피하기) 를 출력하는 함수 */
