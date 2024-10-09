@@ -73,7 +73,7 @@ function gameReset() {
 
 /** 열쇠를 무작위로 배치하는 함수 */
 const placeKey = () => {
-    keyX = Math.floor(Math.random() * (width - 1)); // 필드 내 임의의 위치에 열쇠 배치
+    keyX = Math.floor((Math.random() * (width - 1)) + 1); // 필드 내 임의의 위치에 열쇠 배치
     keyY = Math.floor((Math.random() * (height - 2)) + 1); // 골인 지점(0)은 제외
 };
 
@@ -115,10 +115,25 @@ const drawStage = () => {
     console.clear();
     console.log(`레벨: ${level}`);
     
-    for (let y = 0; y < height; y++) {
+    for (let y = 0; y < height + 1; y++) {
         let line = '';
-        for (let x = 0; x < width; x++) {
-            if (cars.some(car => car.x === x && car.y === y)) {
+        for (let x = 0; x < width + 2; x++) {
+            //테두리 그리기
+            if (x === 0 && y === 0) {
+                line += '┌';
+            } else if (x === width + 1 && y === 0) {
+                line += '┐';
+            } else if (x === 0 && y === height) {
+                line += '└';
+            } else if (x === width + 1 && y === height) {
+                line += '┘';
+            } else if (x === 0 || x === width + 1) {
+                line += '│';
+            } else if (y === height) {
+                line += '─';
+            }
+            //요소 그리기
+            else if (cars.some(car => car.x === x && car.y === y)) {
                 line += '\x1b[32mX\x1b[0m';  // 자동차를 표시
             } else if (x === playerX && y === playerY) {
                 line += '\x1b[31mO\x1b[0m';  // 플레이어를 빨간색으로 표시
@@ -168,14 +183,14 @@ const levelUp = () => {
 
 function createCar() {
     const y = Math.floor((Math.random() * (height - 2)) + 1); // y 좌표는 1부터 height-2까지 랜덤
-    const x = width - 1;
+    const x = width;
     
     cars.push({ x, y });
 };
 
 const movePlayer = (direction) => {
-    if (direction === 'a' && playerX > 0) playerX--;
-    if (direction === 'd' && playerX < width - 1) playerX++;
+    if (direction === 'a' && playerX > 1) playerX--;
+    if (direction === 'd' && playerX < width) playerX++;
     if (direction === 'w' && playerY > 0) playerY--;
     if (direction === 's' && playerY < height - 1) playerY++;
 
