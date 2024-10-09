@@ -9,11 +9,15 @@ const rl = readline.createInterface({
 process.stdin.setRawMode(true);
 process.stdin.resume();
 
+// 게임 중 여부를 체크하는 변수
+let isGameRunning = false;
+
 process.stdin.on('keypress', (ch, key) => {
     if (key && key.name === 'p') {
         process.exit();
     }
-    if (key) {
+    if (isGameRunning && key) {
+        // 게임이 실행 중일 때만 플레이어 이동 처리
         movePlayer(key.name);
     }
 });
@@ -46,11 +50,16 @@ function question(prompt) {
 /**게임 루프 이벤트를 저장하는 필드*/let gameInterval;
 /**차 생성 이벤트를 저장하는 필드*/  let carInterval;
 
+/** 열쇠 위치와 상태 */
+let keyX, keyY;
+let hasKey = false; // 열쇠 획득 여부
+
 /** 게임 시작 시 게임 세팅 함수 */
 function gameSetting() {
     playerX = Math.floor(width / 2);
     playerY = height - 1;
     cars = [];
+    hasKey = false; // 열쇠 상태 초기화
 }
 
 /** 게임 기록, 난이도 리셋 함수 */
@@ -62,9 +71,17 @@ function gameReset() {
     gameSpeed = 200;
 }
 
+/** 열쇠를 무작위로 배치하는 함수 */
+const placeKey = () => {
+    keyX = Math.floor(Math.random() * (width - 1)); // 필드 내 임의의 위치에 열쇠 배치
+    keyY = Math.floor((Math.random() * (height - 2)) + 1); // 골인 지점(0)은 제외
+};
+
 /** 게임 실행 함수 */
 function gameStart() {
+    isGameRunning = true; // 게임이 시작됨을 표시
     gameSetting();
+    placeKey(); // 새로운 열쇠 배치
 
     startTime = Date.now(); // 타이머 시작
 
@@ -76,7 +93,9 @@ function gameStart() {
 function gameLoop() {
     drawStage();
     updateCars();
-    if (playerY === 0) {
+    
+    // 골인 지점 도달 시 열쇠를 획득했는지 확인
+    if (playerY === 0 && hasKey) {
         const endTime = Date.now();
         timeTaken += Math.floor((endTime - startTime) / 1000);
 
@@ -84,23 +103,27 @@ function gameLoop() {
         clearInterval(gameInterval);
         clearInterval(carInterval);
         levelUp();
-        setTimeout(() => {
-            playerY = height - 1;
-            gameStart();
-        }, 2000); // 2초 대기 후 다음 레벨 시작
+        isGameRunning = false; // 게임 일시 중지
+        setTimeout(gameStart, 2000); // 2초 대기 후 다음 레벨 시작
+    } else if (playerY === 0 && !hasKey) {
+        console.log('열쇠를 먼저 획득해야 합니다!');
     }
 };
 
+/**스테이지를 그려주는 함수 */
 const drawStage = () => {
     console.clear();
     console.log(`레벨: ${level}`);
+    
     for (let y = 0; y < height; y++) {
         let line = '';
         for (let x = 0; x < width; x++) {
-            if (x === playerX && y === playerY) {
-                line += '\x1b[31mO\x1b[0m';  // 플레이어를 빨간색으로 표시
-            } else if (cars.some(car => car.x === x && car.y === y)) {
+            if (cars.some(car => car.x === x && car.y === y)) {
                 line += '\x1b[32mX\x1b[0m';  // 자동차를 표시
+            } else if (x === playerX && y === playerY) {
+                line += '\x1b[31mO\x1b[0m';  // 플레이어를 빨간색으로 표시
+            } else if (x === keyX && y === keyY && !hasKey) {
+                line += '\x1b[33mK\x1b[0m';  // 열쇠를 노란색으로 표시
             } else if (y === 0) {
                 line += '\x1b[34m=\x1b[0m';  // 골인 지점
             } else {
@@ -111,29 +134,31 @@ const drawStage = () => {
     }
 };
 
+/**차 위치를 변경하는 함수 */
 function updateCars() {
     cars.forEach((car, index) => {
-        car.x--;
         if (car.x === playerX && car.y === playerY) {
             const endTime = Date.now();
             timeTaken += Math.floor((endTime - startTime) / 1000);
-            console.log('게임 오버...');
-            console.log('잠시 후 타이틀로 돌아갑니다.');
-            console.log(``);
-            console.log(`총 소요 시간: ${timeTaken}초`);
+            console.log('게임 오버...\n'
+                       +'잠시 후 타이틀로 돌아갑니다.\n\n'
+                       +`총 소요 시간: ${timeTaken}초`
+            );
+
             clearInterval(gameInterval);
             clearInterval(carInterval);
-            setTimeout(() => {
-                main(); // 2초 대기 후 타이틀로 돌아가기
-            }, 2000); // 2초 대기
+            isGameRunning = false; // 게임 일시 중지
+            setTimeout(main, 2000); // 2초 대기 후 타이틀로 복귀
             return;
         }
         if (car.x < 0) {
             cars.splice(index, 1);
         }
+        car.x--;
     });
 };
 
+/**레벨 증가 함수 - 레벨 증가 시 난이도 증가*/
 const levelUp = () => {
     level++;
     carSpawnInterval *= 0.7;
@@ -142,13 +167,10 @@ const levelUp = () => {
 };
 
 function createCar() {
-    const y = Math.floor(Math.random() * (height - 1)); // y 좌표는 0부터 height-2까지 랜덤
+    const y = Math.floor((Math.random() * (height - 2)) + 1); // y 좌표는 1부터 height-2까지 랜덤
     const x = width - 1;
     
-    // 도착점(0)에는 자동차를 생성하지 않도록 조건 추가
-    if (y !== 0) {
-        cars.push({ x, y });
-    }
+    cars.push({ x, y });
 };
 
 const movePlayer = (direction) => {
@@ -156,6 +178,12 @@ const movePlayer = (direction) => {
     if (direction === 'd' && playerX < width - 1) playerX++;
     if (direction === 'w' && playerY > 0) playerY--;
     if (direction === 's' && playerY < height - 1) playerY++;
+
+    // 플레이어가 열쇠를 획득했는지 체크
+    if (playerX === keyX && playerY === keyY) {
+        hasKey = true;
+        console.log('열쇠를 획득했습니다!');
+    }
 };
 
 /** 타이틀 글자 (자동차피하기) 를 출력하는 함수 */
@@ -174,18 +202,18 @@ function titleText() {
     console.log('\x1b[32m         ■    ■■■   ■■           ■               ■           ■            ■\x1b[0m');
     console.log('\x1b[32m         ■     ■■■■■■■           ■               ■           ■            ■\x1b[0m');
     console.log('');
-    console.log('###########################################################################');
-    console.log('#                                                                         #');
-    console.log('#                          ⭐  1. 게임시작    ⭐                          #');
-    console.log('#                                                                         #');
-    console.log('#                          ⭐  2. 제작자정보  ⭐                          #');
-    console.log('#                                                                         #');
-    console.log('#                          ⭐  3. 종료        ⭐                          #');
-    console.log('#                                                                         #');
-    console.log('###########################################################################');
+    console.log('┌─────────────────────────────────────────────────────────────────────────┐');
+    console.log('│                                                                         │');
+    console.log('│                          ⭐  1. 게임시작    ⭐                          │');
+    console.log('│                                                                         │');
+    console.log('│                          ⭐  2. 제작자정보  ⭐                          │');
+    console.log('│                                                                         │');
+    console.log('│                          ⭐  3. 종료        ⭐                          │');
+    console.log('│                                                                         │');
+    console.log('└─────────────────────────────────────────────────────────────────────────┘');
 }
 
-/** 타이틀과 게임 메인메뉴를 띄우는 함수 */
+/** 프로그램 초기에 실행하는 함수 */
 async function main() {  
     gameReset();
     titleText();
@@ -197,7 +225,7 @@ async function main() {
     if (input === '1') {
         console.clear();
         console.log('조작법: w(상), s(하), a(좌), d(우)\n\n'
-                   +'자동차를 피해 목적지에 도달하세요!\n\n'
+                   +'자동차(X)를 피해 열쇠(K)를 획득하고, 목적지(====)에 도달하세요!\n\n'
                    +'🚗 잠시 후 게임이 시작됩니다! 🚗'
         );
         
