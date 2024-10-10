@@ -96,6 +96,7 @@ function gameStart() {
 /**반복 실행하여 게임을 구현하는 함수 */
 function gameLoop() {
     drawStage();
+    playerCollision();
     updateCars();
     
     // 골인 지점 도달 시 열쇠를 획득했는지 확인
@@ -156,6 +157,16 @@ const drawStage = () => {
 /**차 위치를 변경하는 함수 */
 function updateCars() {
     cars.forEach((car, index) => {
+        if (car.x < 0) {
+            cars.splice(index, 1);
+        }
+        car.x--;
+    });
+};
+
+/**플레이어 충돌 감지 함수 */
+function playerCollision() {
+    cars.forEach((car, index) => {
         if (car.x === playerX && car.y === playerY) {
             const endTime = Date.now();
             timeTaken += Math.floor((endTime - startTime) / 1000);
@@ -170,12 +181,8 @@ function updateCars() {
             setTimeout(main, 2000); // 2초 대기 후 타이틀로 복귀
             return;
         }
-        if (car.x < 0) {
-            cars.splice(index, 1);
-        }
-        car.x--;
     });
-};
+}
 
 /**레벨 증가 함수 - 레벨 증가 시 난이도 증가*/
 const levelUp = () => {
@@ -213,6 +220,8 @@ const movePlayer = (direction) => {
         hasKey = true;
         console.log('열쇠를 획득했습니다!');
     }
+
+    playerCollision();    
 };
 
 /** 타이틀 글자 (자동차피하기) 를 출력하는 함수 */
