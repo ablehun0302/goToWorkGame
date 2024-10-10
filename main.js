@@ -82,11 +82,15 @@ function gameStart() {
     isGameRunning = true; // 게임이 시작됨을 표시
     gameSetting();
     placeKey(); // 새로운 열쇠 배치
+    //초기 자동차 배치
+    for (let i = 0; i < 100 * (level / 15); i++) {
+        createCar(true);
+    }
 
     startTime = Date.now(); // 타이머 시작
 
     gameInterval = setInterval(gameLoop, gameSpeed);
-    carInterval = setInterval(createCar, carSpawnInterval);
+    carInterval = setInterval( () => { createCar(false) } , carSpawnInterval);
 };
 
 /**반복 실행하여 게임을 구현하는 함수 */
@@ -181,9 +185,19 @@ const levelUp = () => {
     console.log(`레벨 ${level}로 이동합니다!`);
 };
 
-function createCar() {
-    const y = Math.floor((Math.random() * (height - 2)) + 1); // y 좌표는 1부터 height-2까지 랜덤
-    const x = width;
+/**
+ * 차 생성 함수
+ * @param {boolean} isXRandom x 좌표가 랜덤인지: false 일시 x 좌표가 우측 끝으로 고정 
+ */
+function createCar(isXRandom) {
+    let y = Math.floor((Math.random() * (height - 2)) + 1); // y 좌표는 1부터 height-2까지 랜덤
+    let x;
+
+    if (isXRandom) {
+        x = Math.floor((Math.random() * (width - 1)) + 1);
+    } else {
+        x = width;
+    }
     
     cars.push({ x, y });
 };
@@ -234,7 +248,7 @@ async function main() {
     titleText();
 
     /** 플레이어 입력 string */
-    const input = await question('입력해주세요 >');
+    const input = await question('입력해주세요 > ');
 
     //입력받은 값 사용
     if (input === '1') {
@@ -249,7 +263,7 @@ async function main() {
         return;
     } else if (input === '2') {
         console.log('\n최성현 조 : 최성현 20180746, 이상우 20200138, 김영훈 20201541\n');
-        await question('메인으로 복귀하려면 엔터 키를 입력 >'); // 아무 입력도 받지 않고 대기
+        await question('메인으로 복귀하려면 엔터 키를 입력 > '); // 아무 입력도 받지 않고 대기
         main();
         return;
     } else if (input === '3') {
