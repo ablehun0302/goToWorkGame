@@ -35,106 +35,108 @@ function question(prompt) {
     });
 }
 
-/**게임 창 너비 */                  const width = 20;
-/**게임 창 높이*/                   const height = 20;
+/**게임 창 너비 */                  const width = 120;
+/**게임 창 높이*/                   const height = 10;
 /**플레이어 X좌표 @type {number}*/  let playerX;
 /**플레이어 Y좌표 @type {number}*/  let playerY;
 /**자동차 배열 @type {Array}*/      let cars;
 
-/**게임 레벨 @type {number}*/           let level;
-/**게임 시작 시간 @type {number}*/      let startTime;
-/**게임 플레이 시간 @type {number}*/    let timeTaken;
+/**게임 스테이지 @type {number}*/       let stage;
 /**차 생성 주기(밀도) @type {number}*/  let carSpawnInterval;
 /**게임 속도 @type {number}*/           let gameSpeed;
 
-/**게임 루프 이벤트를 저장하는 필드*/let gameInterval;
-/**차 생성 이벤트를 저장하는 필드*/  let carInterval;
+/**스테이지당 점수*/                        const scoresPerStage = 100;
+/**점수 - 우측으로 이동한 칸수 @type {number}*/ let score;
+/**스테이지 초기 제한시간 - 단위: 초*/          let firstTimeLimit;
+/**스테이지 제한시간 @type {number}*/           let timeLimit;
 
-/** 열쇠 위치와 상태 */
-let keyX, keyY;
-let hasKey = false; // 열쇠 획득 여부
+/**게임 루프 이벤트를 저장하는 필드*/   let gameInterval;
+/**차 생성 이벤트를 저장하는 필드*/     let carInterval;
+/**타이머 이벤트를 저장하는 필드*/      let timerInterval;
 
 /** 게임 시작 시 게임 세팅 함수 */
 function gameSetting() {
-    playerX = Math.floor(width / 2);
-    playerY = height - 1;
+    playerX = 0;
+    playerY = Math.floor(height / 2);
     cars = [];
-    hasKey = false; // 열쇠 상태 초기화
+    timeLimit = firstTimeLimit;
 }
 
 /** 게임 기록, 난이도 리셋 함수 */
 function gameReset() {
-    level = 1;
-    startTime = 0;
-    timeTaken = 0;
-    carSpawnInterval = 400;
-    gameSpeed = 200;
+    stage = 1;
+    score = 0;
+    carSpawnInterval = 500;
+    gameSpeed = 300;
+    firstTimeLimit = 40
 }
 
-/** 열쇠를 무작위로 배치하는 함수 */
-const placeKey = () => {
-    keyX = Math.floor((Math.random() * (width - 1)) + 1); // 필드 내 임의의 위치에 열쇠 배치
-    keyY = Math.floor((Math.random() * (height - 2)) + 1); // 골인 지점(0)은 제외
+/**레벨 증가 함수 - 레벨 증가 시 난이도 증가*/
+const levelUp = () => {
+    stage++;
+    carSpawnInterval *= 0.7;
+    gameSpeed *= 0.8;
+    firstTimeLimit -= 5;
+    console.log(`스테이지 ${stage}로 이동합니다!`);
 };
 
 /** 게임 실행 함수 */
 function gameStart() {
     isGameRunning = true; // 게임이 시작됨을 표시
     gameSetting();
-    placeKey(); // 새로운 열쇠 배치
+
     //초기 자동차 배치
-    for (let i = 0; i < 100 * (level / 15); i++) {
+    for (let i = 0; i < 100 * (stage / 15); i++) {
         createCar(true);
     }
 
-    startTime = Date.now(); // 타이머 시작
-
     gameInterval = setInterval(gameLoop, gameSpeed);
-    carInterval = setInterval( () => { createCar(false) } , carSpawnInterval);
+    carInterval = setInterval(() => { createCar(false) } , carSpawnInterval);
+    timerInterval = setInterval(updateTimer, 1000);
 };
 
 /**반복 실행하여 게임을 구현하는 함수 */
 function gameLoop() {
     drawStage();
-    playerCollision();
     updateCars();
-    
-    // 골인 지점 도달 시 열쇠를 획득했는지 확인
-    if (playerY === 0 && hasKey) {
-        const endTime = Date.now();
-        timeTaken += Math.floor((endTime - startTime) / 1000);
+    playerCollision();
+
+    // 골인 지점 도달 시 다음 스테이지
+    if (playerX === scoresPerStage) {
 
         console.log('🎉 스테이지 클리어! 🎉');
         clearInterval(gameInterval);
         clearInterval(carInterval);
+        clearInterval(timerInterval);
         levelUp();
         isGameRunning = false; // 게임 일시 중지
         setTimeout(gameStart, 2000); // 2초 대기 후 다음 레벨 시작
-    } else if (playerY === 0 && !hasKey) {
-        console.log('열쇠를 먼저 획득해야 합니다!');
     }
 };
 
 /**스테이지를 그려주는 함수 */
 const drawStage = () => {
     console.clear();
-    console.log(`레벨: ${level}`);
+
+    //스테이지 정보 그리기
+    let line = `스테이지: ${stage}     이동한 칸수: ${score}     남은 시간: ${timeLimit} [`;
     
-    for (let y = 0; y < height + 1; y++) {
+    for (let i = 1; i <= 10; i ++) {
+        if (i <= Math.floor( ( timeLimit / firstTimeLimit ) * 10 ) ) {
+            line += '■';
+        } else {
+            line += '□';
+        }
+    }
+    line += ']';
+    console.log(line);
+    
+    //게임창 그리기
+    for (let y = 0; y < height + 2; y++) {
         let line = '';
-        for (let x = 0; x < width + 2; x++) {
+        for (let x = 0; x < width; x++) {
             //테두리 그리기
-            if (x === 0 && y === 0) {
-                line += '┌';
-            } else if (x === width + 1 && y === 0) {
-                line += '┐';
-            } else if (x === 0 && y === height) {
-                line += '└';
-            } else if (x === width + 1 && y === height) {
-                line += '┘';
-            } else if (x === 0 || x === width + 1) {
-                line += '│';
-            } else if (y === height) {
+            if (y === height + 1 || y === 0) {
                 line += '─';
             }
             //요소 그리기
@@ -142,10 +144,6 @@ const drawStage = () => {
                 line += '\x1b[32mX\x1b[0m';  // 자동차를 표시
             } else if (x === playerX && y === playerY) {
                 line += '\x1b[31mO\x1b[0m';  // 플레이어를 빨간색으로 표시
-            } else if (x === keyX && y === keyY && !hasKey) {
-                line += '\x1b[33mK\x1b[0m';  // 열쇠를 노란색으로 표시
-            } else if (y === 0) {
-                line += '\x1b[34m=\x1b[0m';  // 골인 지점
             } else {
                 line += ' ';
             }
@@ -157,10 +155,10 @@ const drawStage = () => {
 /**차 위치를 변경하는 함수 */
 function updateCars() {
     cars.forEach((car, index) => {
+        car.x--;
         if (car.x < 0) {
             cars.splice(index, 1);
         }
-        car.x--;
     });
 };
 
@@ -168,40 +166,49 @@ function updateCars() {
 function playerCollision() {
     cars.forEach((car, index) => {
         if (car.x === playerX && car.y === playerY) {
-            const endTime = Date.now();
-            timeTaken += Math.floor((endTime - startTime) / 1000);
-            console.log('게임 오버...\n'
-                       +'잠시 후 타이틀로 돌아갑니다.\n\n'
-                       +`총 소요 시간: ${timeTaken}초`
-            );
-
-            clearInterval(gameInterval);
-            clearInterval(carInterval);
-            isGameRunning = false; // 게임 일시 중지
-            setTimeout(main, 2000); // 2초 대기 후 타이틀로 복귀
-            return;
+            gameOver('부딛혀버렸다...');
         }
     });
 }
 
-/**레벨 증가 함수 - 레벨 증가 시 난이도 증가*/
-const levelUp = () => {
-    level++;
-    carSpawnInterval *= 0.7;
-    gameSpeed *= 0.9;
-    console.log(`레벨 ${level}로 이동합니다!`);
-};
+/**제한시간 업데이트 함수 - 제한시간 소진 시 게임오버 */
+function updateTimer() {
+    timeLimit --;
+    
+    if (timeLimit < 0) {
+        gameOver('지각해버렸다...');
+    }
+}
+
+/**
+ * 게임 종료 함수
+ * @param {string} gameOverText 게임오버 시 띄울 텍스트
+ * @returns 
+ */
+function gameOver(gameOverText) {
+    console.log('[게임 오버]\n'
+        +gameOverText
+        +`\n이동한 칸수: ${score}`
+    );
+
+    clearInterval(gameInterval);
+    clearInterval(carInterval);
+    clearInterval(timerInterval);
+    isGameRunning = false; // 게임 일시 중지
+    setTimeout(main, 2000); // 2초 대기 후 타이틀로 복귀
+    return;
+}
 
 /**
  * 차 생성 함수
  * @param {boolean} isXRandom x 좌표가 랜덤인지: false 일시 x 좌표가 우측 끝으로 고정 
  */
 function createCar(isXRandom) {
-    let y = Math.floor((Math.random() * (height - 2)) + 1); // y 좌표는 1부터 height-2까지 랜덤
+    let y = Math.floor((Math.random() * height) + 1); // y 좌표는 1부터 height + 1까지 랜덤
     let x;
 
     if (isXRandom) {
-        x = Math.floor((Math.random() * (width - 1)) + 1);
+        x = Math.floor((Math.random() * (width - 6)) + 5);
     } else {
         x = width;
     }
@@ -210,16 +217,16 @@ function createCar(isXRandom) {
 };
 
 const movePlayer = (direction) => {
-    if (direction === 'a' && playerX > 1) playerX--;
-    if (direction === 'd' && playerX < width) playerX++;
-    if (direction === 'w' && playerY > 0) playerY--;
-    if (direction === 's' && playerY < height - 1) playerY++;
-
-    // 플레이어가 열쇠를 획득했는지 체크
-    if (playerX === keyX && playerY === keyY) {
-        hasKey = true;
-        console.log('열쇠를 획득했습니다!');
+    if (direction === 'a' && playerX > 0) {
+        playerX --;
+        score --;
     }
+    if (direction === 'd' && playerX < scoresPerStage) {
+        playerX ++;
+        score ++;
+    }
+    if (direction === 'w' && playerY > 1) playerY --;
+    if (direction === 's' && playerY < height) playerY ++;
 
     playerCollision();    
 };
