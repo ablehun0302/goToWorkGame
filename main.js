@@ -47,7 +47,7 @@ function question(prompt) {
 
 /**스테이지당 점수*/                        const scoresPerStage = 100;
 /**점수 - 우측으로 이동한 칸수 @type {number}*/ let score;
-/**스테이지 초기 제한시간 - 단위: 초*/          let firstTimeLimit;
+/**스테이지 초기 제한시간 - 단위: 초*/          const firstTimeLimit = 60;
 /**스테이지 제한시간 @type {number}*/           let timeLimit;
 
 /**게임 루프 이벤트를 저장하는 필드*/   let gameInterval;
@@ -59,7 +59,6 @@ function gameSetting() {
     playerX = 0;
     playerY = Math.floor(height / 2);
     cars = [];
-    timeLimit = firstTimeLimit;
 }
 
 /** 게임 기록, 난이도 리셋 함수 */
@@ -68,7 +67,7 @@ function gameReset() {
     score = 0;
     carSpawnInterval = 500;
     gameSpeed = 300;
-    firstTimeLimit = 40
+    timeLimit = firstTimeLimit;
 }
 
 /**레벨 증가 함수 - 레벨 증가 시 난이도 증가*/
@@ -76,8 +75,8 @@ const levelUp = () => {
     stage++;
     carSpawnInterval *= 0.7;
     gameSpeed *= 0.8;
-    firstTimeLimit -= 5;
-    console.log(`스테이지 ${stage}로 이동합니다!`);
+    timeLimit += 5
+    console.log(`스테이지 ${stage}로 이동합니다!\n\n⌛ 제한시간 + 5초`);
 };
 
 /** 게임 실행 함수 */
@@ -86,7 +85,7 @@ function gameStart() {
     gameSetting();
 
     //초기 자동차 배치
-    for (let i = 0; i < 100 * (stage / 15); i++) {
+    for (let i = 0; i < Math.floor(100 * (stage / 5)); i++) {
         createCar(true);
     }
 
@@ -208,11 +207,18 @@ function createCar(isXRandom) {
     let x;
 
     if (isXRandom) {
-        x = Math.floor((Math.random() * (width - 6)) + 5);
+        x = Math.floor((Math.random() * (width - 10)) + 10);
     } else {
         x = width;
     }
-    
+
+    //새로운 차의 위치가 중복될 시 차 생성 금지
+    cars.forEach((car, index) => {
+        if (x === car.x && y === car.y) {
+            return;
+        }
+    });
+
     cars.push({ x, y });
 };
 
